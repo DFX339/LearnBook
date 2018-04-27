@@ -1,0 +1,200 @@
+nginx由内核和模块组成
+内核非常小，功能也简单，通过查找配置文件将客户端请求映射到location,根据URL匹配。
+每个location中会有不同的模块去处理请求。
+
+nginx优点：
+1.高并发，响应性能好
+2、反向代理性能非常强 ，负载均衡
+3、内存和cpu占用率低
+4、配置代码简单
+5、对后端服务具有检查功能
+6、支持PHPcgi和fastcgi方式
+
+
+nginx分为三个模块：
+核心模块：HTTP模块、EVENT模块、mailmok
+基础模块：HTPP access模块、 HTTP Rewirte模块
+第三方模块：HTTP Upstream RequestHash模块
+
+
+epoll模型：异步非阻塞模型,句柄事件的选择不需要遍历，是事件响应的。效率高--nginx
+select模型 ： 遍历所有的句柄，效率低 --apache
+
+
+下载nginx: wget http://nginx.org/download/nginx-1.6.2.tar.gz
+tar xzf nginx-1.6.2.tar.gz
+cd nginx-1.6.2
+预编译：（一定要进入nginx目录）
+./configure --user=www --group=www --prefix=/usr/local/nginx --with-http_stub_status_module --with-http_ssl_module
+make
+make install  #安装完毕
+
+检查是否正确安装：  /usr/local/nginx/sbin/nginx -t  ,安装正确会返回ok
+
+添加用户，www
+useradd www
+
+启动nginx: /usr/local/nginx/sbin/nginx
+重启nginx: /usr/local/nginx/sbin/nginx -s reload
+nginx:
+conf/nginx.conf  主要的配置文件目录
+html ：nginx的默认发布目录，部署完后 网站会在这个目录
+
+启动nginx出错：
+nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+先 kilall -9 nginx
+然后重新启动nginx
+
+停止nginx: kill -QUIT 'cat /var/run/nginx.pid'
+
+/usr/local/nginx/sbin/nginx -v：查看版本号
+
+然后再检查一遍：/usr/local/nginx/sbin/nginx -t
+结果为ok时，再去访问
+
+
+
+
+用户请求先匹配server_name
+然后再匹配location
+
+
+访问nginx出现错误，查看防火墙。
+linux查看防火墙状态：
+service  ipdtables status
+
+linux关闭防火墙：
+service  ipdtables stop
+
+linux开启防火墙：
+service  ipdtables start
+
+开启域名示例：********************
+配置文件：nginx.conf
+server{
+	listen	80;
+	server_name	www.pp.com;
+	localtion / {
+		root	html/a
+		index	index.html index.htm;
+	}
+}
+server:表示一个服务
+location:是路径
+root :文件夹命名
+index：页面
+
+在nginx的html目录新建a目录
+
+复制index.html页面到a目录下
+再到hosts文件中添加主机配置
+119.23.24.87  www.ddffxx.com
+再到浏览器中访问：  www.ddffxx.com
+
+
+一个nginx可配置几十个域名，几十个虚拟主机
+
+
+nginx参数的配置：（调优也一起讲）
+nginx的配置文件---nginx.conf
+
+
+user www www #定义nginx的用户和用户组
+worker_processes 4; #默认启动4个工作进程（企业一般8-16个）
+可以改成 worker_processes.auto; #自动根据请求去启动进程
+worker_cpu_affinity 00000001 00000010 00000100 00001000 #CPU的亲和性，配置几个就要有几个逻辑CPU
+pid /usr/local/nginx/nginx.pid #指定进程id的位置
+worker_rlimit_nofile 102400;#指定进程打开的最多的文件描述符数目，这个最好是配置与 ulimit -n 的值相等
+
+#event模块，定义使用哪个模块； nginx2.6以上，可以使用epoll模块
+events{
+	use epoll;
+	worker_connections 102400; #单个后台进程的最多并发连接数
+	multi_accept on; #尽可能多的接收请求（优化的一部分）
+}
+
+sendfile on; #指定nginx是否调用函数，普通应用必须为on
+
+tcp_nopush on; #防止网络阻塞
+keepalive_timeout 60;#保持超时时间，单位是秒。连接继续保持的时间，连接不断开。 再次浏览时可以直接请求，不需要重新建立连接。
+tcp_nodelay on; #提高数据的实时响应性。
+
+#开启gzip压缩,性能提升好几倍
+gzip on;
+gzip_min_length 1k;#小与1k就不压缩
+gzip_buffers 416k;
+gzip_http_version1.1;
+gzip_comp_level 4;#这是指压缩级别。最大为9。配置为4，访问原来网址为180k时，压缩后可能是40-50k。这提高性能，然后这里一般配置为 4或者6.
+
+缓冲区
+client_max_body_size 10M; #允许客户端请求的最大单文件字节数Wie10兆
+client_body_buffer_size 128k; #缓冲区代理缓冲用户端请求的最大字节数
+
+
+**********
+proxy_connect_timeout 90; #nginx与后端服务器的连接时间
+示例：一个nginx对应后端的多个tomcat，读取超过90秒就是超时
+proxy_send_timeout 90; #后端服务器数据回传时间,在规定时间内，后端服务器必须回传所有数据。
+proxy_read_timeout 90; #连接成功后，后端服务器的响应时间（处理请求的时间）
+这个值一般设置为120秒。超时了nginx会报502错误。
+
+
+nginx优化方法
+1、work_process : cpu亲和性
+2、选择epoll模型
+3、work_connects连接数
+4、每个进程打开文件最大数
+5、keepalive timeout; 会话保持时间
+6、gzip压缩级别
+7、proxy 超时时间配置
+8、expires 3d;浏览器缓存过期时间，30天
+9、nginx动静分离
+
+****nginx动静分离
+将动态请求与静态请求分开
+一种是将  纯粹的把静态文件做成独立的域名，放在独立的服务器上，目前的主流方案。
+另一种是  将动态文件和静态文件混合发布，根据不同的后缀名请求不同的文件。
+
+#定义模块：（这里配置服务器，**负载均衡**）
+upstream  jvm_web1{
+	server 127.0.0.1:8080 weight=1max_fails=2 fail_timeout=30s;
+	server 127.0.0.1:8081 weight=1max_fails=2 fail_timeout=30s;
+}
+
+location / {
+
+	proxy_pass http://jvm_web1; #将请求转发给后台请求,使用jvm_web1模块
+
+}
+location~ 。。。#这里做匹配静态文件的数据，然后下面配置对应的server接收静态文件请求
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,867 @@
+SpringBoot(主流)
+
+SpringBoot简介
+核心点：
+1、敏捷开发，轻量级框架 , 弊端：封装太完美，不方便扩展 （但是高版本中的springboot是可以自定义的）
+2、无需tomcat （java应用程序运行，通过运行jar包）
+3、减少xml配置（几乎没有xml），配置properties文件
+4、SpringCloud + SpringBoot = (微服务开发)
+5、注解
+
+SpringBoot与微服务有什么关联？
+
+目前微服务都是使用springCloud(Http接口+rest),SpringCloud用的是SpirngbBoot,SpringBoot Web组件封装SpringMVC。
+
+SpringBoot的底层是SpringMVC，所以SpringBoot不可能和Struts整合。
+
+互联网项目的趋势：面向服务架构（SOA） --》 微服务架构 （SpringCloud+SpringBoot）
+
+SpringData 与 SpringMVC 
+SpringData主要用来操作数据库，类似mybatis、hibernate
+SpringMVC是控制层框架
+
+SpringBoot是否安全？
+安全，封装的比较好。
+
+
+第一个SpringBoot项目：
+核心依赖：
+引入父类工程:自动将常用的依赖包引用过了了
+<parent>
+	<groupId>org.springframework.boot</groupId>
+	<artifactId>spring-boot-starter-parent</artifactId>
+	<version>1.3.3.RELEALSE</version>
+</parent>
+
+引入web组件：自动引用spring 引用SpringMVC，不写版本，自动解决jar包冲突问题
+<dependency>
+	<groupId>org.springframework.boot</groupId>
+	<artifactId>spring-boot-starter-web</artifactId>
+</dependency>
+
+springboot封装jar包的依赖原理：（为什么加一个依赖就能引入所有相关jar包）
+
+使用maven继承依赖关系，管理所有的jar包。
+引用指定的jar包，然后自动的引用其它相关jar包。
+
+SpringBoot写第一个接口（服务）：
+服务理解为一个controller，需要做业务请求的类。
+
+
+@RestController:返回json格式的数据
+@RestController 类似于  @Controller + @ResponseBody
+
+@EnableAutoConfiguration :创建tomcat容器，注入所有配置信息
+主方法： main，标识开始运行该项目
+启动成功 后，端口号为8080
+
+    
+SpringBoot如果有多个controller类，可以新建一个启动类（包含mainfnagf ）。
+在启动类上使用 @ComponentScan("cn.demo.controller") 扫描所有的controller类
+
+
+SpringBoot项目启动后，可以直接访问静态资源
+静态资源推荐放在 resources目录下的，static(自己新建的目录)下，可以通过 http://localhost:8080/pic.jpg访问图片
+
+
+全部捕获异常：（管理整个项目的异常，改变404/500错误页面）
+（1）新建全局捕获异常类 使用@ControllerAdvice
+ 当项目中出现运行时异常时。。会自动调用此方法，然后返回到相应的页面。
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+/**
+ * 全部捕获异常：使用AOP的异常通知
+ * @author Administrator
+ *如果返回json格式 添加@ResponseBody注解，
+ *如果返回页面使用String作为返回值，不需要添加注解	
+ */
+
+@ControllerAdvice
+public class GlobalExceptionHandler {
+	
+	//以json数据返回
+	@ExceptionHandler(RuntimeException.class)
+	@ResponseBody
+	public Map<String,Object> error500(){
+		Map<String,Object> map = new HashMap<String,Object>();
+		map.put("500", "系统错误");
+		return map;
+	}
+	
+//	//异常是返回页面
+//	@ExceptionHandler(RuntimeException.class)
+//	public String error404(){
+//		return "error";
+//	}
+	
+}
+
+
+Springboot和模板引擎整合,不推荐使用jsp。推荐 freemarker
+
+模板引擎（动态页面静态化）：将动态的数据未造成静态的html页面
+优点： 提高搜索引擎搜索效率，静态页面会排前
+       能做动态Active实现
+模板引擎技术： Freemarker、velocity、thymelef
+
+SpringBoot怎么渲染页面？
+（1）加入freemarker依赖
+spring-boot-starter-freemarker
+（2）freemarker默认找的是resources/templates 目录下的文件
+在sourcess/templates 目录下新建 index.ftl 页面
+（3）使用@Controller注解，返回String类型数据
+可以不加任何配置，直接启动就行了。(也可以配置aplication.properties文件)
+<!--springboot 整合freemarker 添加的依赖-->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-freemarker</artifactId>
+    </dependency>
+
+
+SpringBoot的配置文件：
+application.properties  或者  bootstrap.yml
+
+
+SpringBoot整合jsp项目
+（1）一定要选择war包，maven项目
+（2）引入jsp依赖： spring-boot-starter-tomcat ，spring-boot-starter-web,tomcat-embed-jasper
+（3）使用@Controller注解，返回String类型数据
+（4）在application.properteis文件中配置：
+ spring.mvc.view.prefix=/WEB-INF/jsp/
+ spring.mvc.view.suffix=.jsp
+<!--springboot 整合jsp需要的jar包-->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-tomcat</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.tomcat.embed</groupId>
+      <artifactId>tomcat-embed-jasper</artifactId>
+    </dependency>
+
+
+SpringBoot整合JdbcTemplate
+（1）引入依赖 spring-boot-starter-jdbc,spring-boot-starter-test,mysql-connector-java
+（2）建立application.properties文件 ，配属数据库信息
+（3）在业务层， @Autoworied private JdbcTemplate jdbcTemplate; jdbcTemplate.update("数据库语句");
+
+main法对应的类中，扫多个包
+@ComponentScan(basePackage{"com.demo.controller","com.demo.service"})
+
+SpringBoot整合JPA
+SpringJPA:对hibernate做封装，基本上使用注解。
+项目整合jdbc/jpa/mybatis不会有冲突，所以依赖不会冲突
+（1）引入依赖 spring-boot-data-jpa,mysql-connector-java
+（2）创建实体类 ，使用注解@Entity(name="user")--引用java中的，不要引用hiberante里面的
+	@Id 标识主键，@Column 标识为列
+（3）建立application.properties文件 ，配属数据库信息
+（4）新建Dao层，集成JpaRepository。public interface UserDao extends JpaRepository<User,Integer>{}，
+ @Autoworied
+ private UserDao userDap; 
+ userDao.save("数据库语句");//增加
+ userDao.find(id);//删除
+（5）添加 EnableJpaRepositories("com.demo.dao") //扫描到层
+（6）添加EntityScan("com.demo.bean") //扫描实体类
+
+
+SpringBoot整合Mybatis
+（1）加入依赖 mybatis-spring-boot-starter
+（2）加入applcation.properties 配置文件，数据库配置信息
+mybatis 注解版本 和 XML版本
+注解版本
+新建mapper接口，UserMapper.java
+ 例如：@Select("{SELECT *FROM USER WHERE NAME=#{name}}")
+       User findByName(@Param("name") String name);
+ 在主类中使用注解： @MapperScan("com.demo.mapper")
+
+
+运行springboot时记得注明tomcat的版本，如果本地tomcat的版本为8.0以下时
+通过添加依赖：
+ <dependency>
+    <groupId>org.apache.tomcat</groupId>
+    <artifactId>tomcat-juli</artifactId>
+    <version>7.0.72</version> <!--这个就是tomcat的版本-->
+  </dependency>
+
+
+4.3、springboot整合使用springjpa
+4.3.1 pom文件引入依赖
+<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>1.4.2.RELEASE</version>
+	</parent>
+	<dependencies>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+			<version>5.1.21</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+	</dependencies>
+
+4.3.2 创建User实体类
+@Entity(name = "users")
+public class User {
+	@Id
+	@GeneratedValue
+	private Integer id;
+	@Column
+	private String name;
+	@Column
+	private Integer age;
+      // ..get/set方法
+}
+
+4.3.3 创建UserDao
+public interface UserDao extends JpaRepository<User, Integer> {
+}
+
+4.3.4 创建IndexController
+@RestController
+public class IndexController {
+	@Autowired
+	private UserDao userDao;
+	@RequestMapping("/index")
+	public String index(Integer id) {
+		User findUser = userDao.findOne(id);
+		System.out.println(findUser.getName());
+		return "success";
+	}
+}
+4.3.5 启动项目
+@ComponentScan(basePackages = { "com.itmayiedu" })
+@EnableJpaRepositories(basePackages = "com.itmayiedu.dao")
+@EnableAutoConfiguration
+@EntityScan(basePackages = "com.itmayiedu.entity")
+public class App {
+	public static void main(String[] args) {
+		SpringApplication.run(App.class, args);
+	}
+}
+
+
+
+
+4.4、springboot整合多数据源
+
+4.4.1配置文件中新增两个数据源
+spring.datasource.test1.driverClassName = com.mysql.jdbc.Driver
+spring.datasource.test1.url = jdbc:mysql://localhost:3306/test01?useUnicode=true&characterEncoding=utf-8
+spring.datasource.test1.username = root
+spring.datasource.test1.password = root
+
+spring.datasource.test2.driverClassName = com.mysql.jdbc.Driver
+spring.datasource.test2.url = jdbc:mysql://localhost:3306/test02?useUnicode=true&characterEncoding=utf-8
+spring.datasource.test2.username = root
+spring.datasource.test2.password = root
+
+4.4.2配置文件中新增两个数据源
+@Configuration // 注册到springboot容器中
+@MapperScan(basePackages = "com.itmayiedu.user1", sqlSessionFactoryRef = "test1SqlSessionFactory")
+public class DataSource1Config {
+
+	/**
+	 * 
+	 * @methodDesc: 功能描述:(配置test1数据库)
+	 */
+	@Bean(name = "test1DataSource")
+	@Primary
+	@ConfigurationProperties(prefix = "spring.datasource.test1")
+	public DataSource testDataSource() {
+		return DataSourceBuilder.create().build();
+	}
+
+	/**
+	 * 
+	 * @methodDesc: 功能描述:(test1 sql会话工厂)
+	 */
+	@Bean(name = "test1SqlSessionFactory")
+	@Primary
+	public SqlSessionFactory testSqlSessionFactory(@Qualifier("test1DataSource") DataSource dataSource)
+			throws Exception {
+		SqlSessionFactoryBean bean = new SqlSessionFactoryBean();
+		bean.setDataSource(dataSource);
+//		bean.setMapperLocations(
+//				new PathMatchingResourcePatternResolver().getResources("classpath:mybatis/mapper/test1/*.xml"));
+		return bean.getObject();
+	}
+
+	/**
+	 * 
+	 * @methodDesc: 功能描述:(test1 事物管理)
+	 */
+	@Bean(name = "test1TransactionManager")
+	@Primary
+	public DataSourceTransactionManager testTransactionManager(@Qualifier("test1DataSource") DataSource dataSource) {
+		return new DataSourceTransactionManager(dataSource);
+	}
+
+	@Bean(name = "test1SqlSessionTemplate")
+	public SqlSessionTemplate testSqlSessionTemplate(
+			@Qualifier("test1SqlSessionFactory") SqlSessionFactory sqlSessionFactory) throws Exception {
+		return new SqlSessionTemplate(sqlSessionFactory);
+	}
+
+}
+
+4.4.2创建分包Mapper 
+public interface User1Mapper {
+	@Insert("insert into users values(null,#{name},#{age});")
+	public int addUser(@Param("name") String name, @Param("age") Integer age);
+}
+4.4.3启动项目
+@ComponentScan(basePackages = "com.itmayiedu")
+@EnableAutoConfiguration
+public class App {
+	public static void main(String[] args) {
+		SpringApplication.run(App.class, args);
+	}
+}
+
+
+
+
+
+No qualifying bean of type [javax.sql.DataSource] is defined: expected single matching bean but found 2: test1DataSource,test2DataSource
+五、	事物管理
+5.1.1springboot整合事物管理
+ springboot默认集成事物,只主要在方法上加上@Transactional即可
+5.1.2SpringBoot分布式事物管理
+使用springboot+jta+atomikos 分布式事物管理
+5.1.2.1新增配置文件信息
+<dependency>
+	<groupId>org.springframework.boot</groupId>
+	<artifactId>spring-boot-starter-jta-atomikos</artifactId>
+</dependency>
+
+5.1.2.2新增配置文件信息
+# Mysql 1
+mysql.datasource.test.url = jdbc:mysql://localhost:3306/test01?useUnicode=true&characterEncoding=utf-8
+mysql.datasource.test.username = root
+mysql.datasource.test.password = root
+
+mysql.datasource.test.minPoolSize = 3
+mysql.datasource.test.maxPoolSize = 25
+mysql.datasource.test.maxLifetime = 20000
+mysql.datasource.test.borrowConnectionTimeout = 30
+mysql.datasource.test.loginTimeout = 30
+mysql.datasource.test.maintenanceInterval = 60
+mysql.datasource.test.maxIdleTime = 60
+mysql.datasource.test.testQuery = select 1
+
+
+# Mysql 2
+mysql.datasource.test2.url =jdbc:mysql://localhost:3306/test02?useUnicode=true&characterEncoding=utf-8
+mysql.datasource.test2.username =root
+mysql.datasource.test2.password =root
+
+mysql.datasource.test2.minPoolSize = 3
+mysql.datasource.test2.maxPoolSize = 25
+mysql.datasource.test2.maxLifetime = 20000
+mysql.datasource.test2.borrowConnectionTimeout = 30
+mysql.datasource.test2.loginTimeout = 30
+mysql.datasource.test2.maintenanceInterval = 60
+mysql.datasource.test2.maxIdleTime = 60
+mysql.datasource.test2.testQuery = select 1
+
+
+5.1.2.3 读取配置文件信息
+package com.itmayiedu.config;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+@ConfigurationProperties(prefix = "mysql.datasource.test")
+public class DBConfig1 {
+
+	private String url;
+	private String username;
+	private String password;
+	private int minPoolSize;
+	private int maxPoolSize;
+	private int maxLifetime;
+	private int borrowConnectionTimeout;
+	private int loginTimeout;
+	private int maintenanceInterval;
+	private int maxIdleTime;
+	private String testQuery;
+}
+package com.itmayiedu.config;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+@ConfigurationProperties(prefix = "mysql.datasource.test1")
+public class DBConfig2 {
+
+	private String url;
+	private String username;
+	private String password;
+	private int minPoolSize;
+	private int maxPoolSize;
+	private int maxLifetime;
+	private int borrowConnectionTimeout;
+	private int loginTimeout;
+	private int maintenanceInterval;
+	private int maxIdleTime;
+	private String testQuery;
+}
+
+
+
+
+5.1.2.4 创建多数据源
+@Configuration
+// basePackages 最好分开配置 如果放在同一个文件夹可能会报错
+@MapperScan(basePackages = "com.itmayiedu.test01", sqlSessionTemplateRef = "testSqlSessionTemplate")
+public class TestMyBatisConfig1 {
+
+	// 配置数据源
+	@Primary
+	@Bean(name = "testDataSource")
+	public DataSource testDataSource(DBConfig1 testConfig) throws SQLException {
+		MysqlXADataSource mysqlXaDataSource = new MysqlXADataSource();
+		mysqlXaDataSource.setUrl(testConfig.getUrl());
+		mysqlXaDataSource.setPinGlobalTxToPhysicalConnection(true);
+		mysqlXaDataSource.setPassword(testConfig.getPassword());
+		mysqlXaDataSource.setUser(testConfig.getUsername());
+		mysqlXaDataSource.setPinGlobalTxToPhysicalConnection(true);
+
+		AtomikosDataSourceBean xaDataSource = new AtomikosDataSourceBean();
+		xaDataSource.setXaDataSource(mysqlXaDataSource);
+		xaDataSource.setUniqueResourceName("testDataSource");
+
+		xaDataSource.setMinPoolSize(testConfig.getMinPoolSize());
+		xaDataSource.setMaxPoolSize(testConfig.getMaxPoolSize());
+		xaDataSource.setMaxLifetime(testConfig.getMaxLifetime());
+		xaDataSource.setBorrowConnectionTimeout(testConfig.getBorrowConnectionTimeout());
+		xaDataSource.setLoginTimeout(testConfig.getLoginTimeout());
+		xaDataSource.setMaintenanceInterval(testConfig.getMaintenanceInterval());
+		xaDataSource.setMaxIdleTime(testConfig.getMaxIdleTime());
+		xaDataSource.setTestQuery(testConfig.getTestQuery());
+		return xaDataSource;
+	}
+
+	@Bean(name = "testSqlSessionFactory")
+	public SqlSessionFactory testSqlSessionFactory(@Qualifier("testDataSource") DataSource dataSource)
+			throws Exception {
+		SqlSessionFactoryBean bean = new SqlSessionFactoryBean();
+		bean.setDataSource(dataSource);
+		return bean.getObject();
+	}
+
+	@Bean(name = "testSqlSessionTemplate")
+	public SqlSessionTemplate testSqlSessionTemplate(
+			@Qualifier("testSqlSessionFactory") SqlSessionFactory sqlSessionFactory) throws Exception {
+		return new SqlSessionTemplate(sqlSessionFactory);
+	}
+}
+
+package com.itmayiedu.datasource;
+
+import java.sql.SQLException;
+
+import javax.sql.DataSource;
+
+import org.apache.ibatis.session.SqlSessionFactory;
+import org.mybatis.spring.SqlSessionFactoryBean;
+import org.mybatis.spring.SqlSessionTemplate;
+import org.mybatis.spring.annotation.MapperScan;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import com.atomikos.jdbc.AtomikosDataSourceBean;
+import com.itmayiedu.config.DBConfig1;
+import com.mysql.jdbc.jdbc2.optional.MysqlXADataSource;
+
+@Configuration
+// basePackages 最好分开配置 如果放在同一个文件夹可能会报错
+@MapperScan(basePackages = "com.itmayiedu.test02", sqlSessionTemplateRef = "test2SqlSessionTemplate")
+public class TestMyBatisConfig2 {
+
+	// 配置数据源
+	@Bean(name = "test2DataSource")
+	public DataSource testDataSource(DBConfig1 testConfig) throws SQLException {
+		MysqlXADataSource mysqlXaDataSource = new MysqlXADataSource();
+		mysqlXaDataSource.setUrl(testConfig.getUrl());
+		mysqlXaDataSource.setPinGlobalTxToPhysicalConnection(true);
+		mysqlXaDataSource.setPassword(testConfig.getPassword());
+		mysqlXaDataSource.setUser(testConfig.getUsername());
+		mysqlXaDataSource.setPinGlobalTxToPhysicalConnection(true);
+
+		AtomikosDataSourceBean xaDataSource = new AtomikosDataSourceBean();
+		xaDataSource.setXaDataSource(mysqlXaDataSource);
+		xaDataSource.setUniqueResourceName("test2DataSource");
+
+		xaDataSource.setMinPoolSize(testConfig.getMinPoolSize());
+		xaDataSource.setMaxPoolSize(testConfig.getMaxPoolSize());
+		xaDataSource.setMaxLifetime(testConfig.getMaxLifetime());
+		xaDataSource.setBorrowConnectionTimeout(testConfig.getBorrowConnectionTimeout());
+		xaDataSource.setLoginTimeout(testConfig.getLoginTimeout());
+		xaDataSource.setMaintenanceInterval(testConfig.getMaintenanceInterval());
+		xaDataSource.setMaxIdleTime(testConfig.getMaxIdleTime());
+		xaDataSource.setTestQuery(testConfig.getTestQuery());
+		return xaDataSource;
+	}
+
+	@Bean(name = "test2SqlSessionFactory")
+	public SqlSessionFactory testSqlSessionFactory(@Qualifier("test2DataSource") DataSource dataSource)
+			throws Exception {
+		SqlSessionFactoryBean bean = new SqlSessionFactoryBean();
+		bean.setDataSource(dataSource);
+		return bean.getObject();
+	}
+
+	@Bean(name = "test2SqlSessionTemplate")
+	public SqlSessionTemplate testSqlSessionTemplate(
+			@Qualifier("test2SqlSessionFactory") SqlSessionFactory sqlSessionFactory) throws Exception {
+		return new SqlSessionTemplate(sqlSessionFactory);
+	}
+}
+
+5.1.2.4 启动加载配置
+@EnableConfigurationProperties(value = { DBConfig1.class, DBConfig2.class })
+
+
+六、	日志管理
+6.1使用log4j记录日志
+6.1.2新建log4j配置文件
+#log4j.rootLogger=CONSOLE,info,error,DEBUG
+log4j.rootLogger=info,error,CONSOLE,DEBUG
+log4j.appender.CONSOLE=org.apache.log4j.ConsoleAppender     
+log4j.appender.CONSOLE.layout=org.apache.log4j.PatternLayout     
+log4j.appender.CONSOLE.layout.ConversionPattern=%d{yyyy-MM-dd-HH-mm} [%t] [%c] [%p] - %m%n     
+log4j.logger.info=info
+log4j.appender.info=org.apache.log4j.DailyRollingFileAppender
+log4j.appender.info.layout=org.apache.log4j.PatternLayout     
+log4j.appender.info.layout.ConversionPattern=%d{yyyy-MM-dd-HH-mm} [%t] [%c] [%p] - %m%n  
+log4j.appender.info.datePattern='.'yyyy-MM-dd
+log4j.appender.info.Threshold = info   
+log4j.appender.info.append=true   
+#log4j.appender.info.File=/home/admin/pms-api-services/logs/info/api_services_info
+log4j.appender.info.File=/Users/dddd/Documents/testspace/pms-api-services/logs/info/api_services_info
+log4j.logger.error=error  
+log4j.appender.error=org.apache.log4j.DailyRollingFileAppender
+log4j.appender.error.layout=org.apache.log4j.PatternLayout     
+log4j.appender.error.layout.ConversionPattern=%d{yyyy-MM-dd-HH-mm} [%t] [%c] [%p] - %m%n  
+log4j.appender.error.datePattern='.'yyyy-MM-dd
+log4j.appender.error.Threshold = error   
+log4j.appender.error.append=true   
+#log4j.appender.error.File=/home/admin/pms-api-services/logs/error/api_services_error
+log4j.appender.error.File=/Users/dddd/Documents/testspace/pms-api-services/logs/error/api_services_error
+log4j.logger.DEBUG=DEBUG
+log4j.appender.DEBUG=org.apache.log4j.DailyRollingFileAppender
+log4j.appender.DEBUG.layout=org.apache.log4j.PatternLayout     
+log4j.appender.DEBUG.layout.ConversionPattern=%d{yyyy-MM-dd-HH-mm} [%t] [%c] [%p] - %m%n  
+log4j.appender.DEBUG.datePattern='.'yyyy-MM-dd
+log4j.appender.DEBUG.Threshold = DEBUG   
+log4j.appender.DEBUG.append=true   
+#log4j.appender.DEBUG.File=/home/admin/pms-api-services/logs/debug/api_services_debug
+log4j.appender.DEBUG.File=/Users/dddd/Documents/testspace/pms-api-services/logs/debug/api_services_debug
+
+
+
+6.2使用AOP统一处理Web请求日志
+6.2.1POM文件新增依赖
+	<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-aop</artifactId>
+	</dependency>
+
+6.2.2POM文件新增依赖
+@Aspect
+@Component
+public class WebLogAspect {
+	private Logger logger = LoggerFactory.getLogger(getClass());
+	@Pointcut("execution(public * com.itmayiedu.controller..*.*(..))")
+	public void webLog() {
+	}
+	@Before("webLog()")
+	public void doBefore(JoinPoint joinPoint) throws Throwable {
+		// 接收到请求，记录请求内容
+		ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+		HttpServletRequest request = attributes.getRequest();
+		// 记录下请求内容
+		logger.info("URL : " + request.getRequestURL().toString());
+		logger.info("HTTP_METHOD : " + request.getMethod());
+		logger.info("IP : " + request.getRemoteAddr());
+		Enumeration<String> enu = request.getParameterNames();
+		while (enu.hasMoreElements()) {
+			String name = (String) enu.nextElement();
+			logger.info("name:{},value:{}", name, request.getParameter(name));
+		}
+	}
+	@AfterReturning(returning = "ret", pointcut = "webLog()")
+	public void doAfterReturning(Object ret) throws Throwable {
+		// 处理完请求，返回内容
+		logger.info("RESPONSE : " + ret);
+	}
+}
+
+
+七、	缓存支持
+7.1注解配置与EhCache使用
+7.1.1 pom文件引入
+<dependency>
+<groupId>org.springframework.boot</groupId>
+<artifactId>spring-boot-starter-cache</artifactId>
+</dependency>
+
+7.1.2新建ehcache.xml 文件
+<?xml version="1.0" encoding="UTF-8"?>
+<ehcache xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:noNamespaceSchemaLocation="http://ehcache.org/ehcache.xsd"
+	updateCheck="false">
+	<diskStore path="java.io.tmpdir/Tmp_EhCache" />
+
+	<!-- 默认配置 -->
+	<defaultCache maxElementsInMemory="5000" eternal="false"
+		timeToIdleSeconds="120" timeToLiveSeconds="120"
+		memoryStoreEvictionPolicy="LRU" overflowToDisk="false" />
+
+	<cache name="baseCache" maxElementsInMemory="10000"
+		maxElementsOnDisk="100000" />
+
+</ehcache>
+配置信息介绍
+1.	    <!--  
+2.	       name:缓存名称。  
+3.	       maxElementsInMemory：缓存最大个数。  
+4.	       eternal:对象是否永久有效，一但设置了，timeout将不起作用。  
+5.	       timeToIdleSeconds：设置对象在失效前的允许闲置时间（单位：秒）。仅当eternal=false对象不是永久有效时使用，可选属性，默认值是0，也就是可闲置时间无穷大。  
+6.	       timeToLiveSeconds：设置对象在失效前允许存活时间（单位：秒）。最大时间介于创建时间和失效时间之间。仅当eternal=false对象不是永久有效时使用，默认是0.，也就是对象存活时间无穷大。  
+7.	       overflowToDisk：当内存中对象数量达到maxElementsInMemory时，Ehcache将会对象写到磁盘中。  
+8.	       diskSpoolBufferSizeMB：这个参数设置DiskStore（磁盘缓存）的缓存区大小。默认是30MB。每个Cache都应该有自己的一个缓冲区。  
+9.	       maxElementsOnDisk：硬盘最大缓存个数。  
+10.	       diskPersistent：是否缓存虚拟机重启期数据 Whether the disk store persists between restarts of the Virtual Machine. The default value is false.  
+11.	       diskExpiryThreadIntervalSeconds：磁盘失效线程运行时间间隔，默认是120秒。  
+12.	       memoryStoreEvictionPolicy：当达到maxElementsInMemory限制时，Ehcache将会根据指定的策略去清理内存。默认策略是LRU（最近最少使用）。你可以设置为FIFO（先进先出）或是LFU（较少使用）。  
+13.	       clearOnFlush：内存数量最大时是否清除。  
+14.	    --> 
+
+
+
+
+7.1.3代码使用Cacheable
+@CacheConfig(cacheNames = "baseCache")
+public interface UserMapper {
+	@Select("select * from users where name=#{name}")
+	@Cacheable
+	UserEntity findName(@Param("name") String name);
+}
+7.1.4清除缓存
+@Autowired
+private CacheManager cacheManager;
+@RequestMapping("/remoKey")
+public void remoKey() {
+	cacheManager.getCache("baseCache").clear();
+}
+
+
+
+
+使用Redis做集中式缓存
+
+八、	其他内容
+
+8.1、使用@Scheduled创建定时任务
+在Spring Boot的主类中加入@EnableScheduling注解，启用定时任务的配置
+@Component
+public class ScheduledTasks {
+    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
+    @Scheduled(fixedRate = 5000)
+    public void reportCurrentTime() {
+        System.out.println("现在时间：" + dateFormat.format(new Date()));
+    }
+}
+
+
+8.2、使用@Async实现异步调用
+启动加上@EnableAsync ,需要执行异步方法上加入	@Async
+8.3、自定义参数
+配置文件值
+name=itmayiedu.com
+
+配置文件值
+	@Value("${name}")
+	private String name;
+@ResponseBody
+	@RequestMapping("/getValue")
+	public String getValue() {
+		return name;
+	}
+
+8.4、多环境配置
+spring.profiles.active=pre
+
+application-dev.properties：开发环境
+application-test.properties：测试环境
+application-prod.properties：生产环境
+8.5、修改端口号
+server.port=8888 
+server.context-path=/itmayiedu
+8.6、SpringBoot yml 使用
+创建application.yml
+server:
+  port:  8090
+  context-path: /itmayiedu
+
+
+8.7、发布打包
+使用mvn package 打包
+使用java –jar 包名
+如果报错没有主清单,在pom文件中新增
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<source>1.8</source>
+					<target>1.8</target>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<maimClass>com.itmayiedu.app.App</maimClass>
+				</configuration>
+				<executions>
+					<execution>
+						<goals>
+							<goal>repackage</goal>
+						</goals>
+					</execution>
+				</executions>
+
+			</plugin>
+		</plugins>
+	</build>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+package java.Springboot
+
+/**
+ * Springboot入门示例
+ *
+ */
+@RestController
+public class HelloWorld {
+
+    @RequestMapping("/say")
+    public String sayHello(){
+        return "HelloWorld";
+    }
+
+    @RequestMapping("/getMap")
+    public Map<String,Object> getMap(){
+        Map<String,Object> map = new HashMap<String,Object>();
+        map.put("msg","congratulations");
+        map.put("thank you","you are welcome");
+        return "HelloWorld";
+    }
+}
+
+
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>Springboot</groupId>
+  <artifactId>springboot1-helloworld</artifactId>
+  <packaging>jar</packaging>
+  <version>1.0-SNAPSHOT</version>
+
+  <name>A Camel Route</name>
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>1.5.6.RELEASE</version>
+  </parent>
+
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+  </properties>
+
+
+  <dependencies>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+
+  </dependencies>
+
+</project>
+
+
+
+     
